@@ -6,7 +6,10 @@ const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 
 const Contact = require('./models/contact');
+const Project = require('./models/project');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const Admin = require('./models/admin');
 
 const app = express();
 app.use(cors());
@@ -92,9 +95,24 @@ const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'change_me';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change';
 
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Missing credentials' });
+  // Try DB-backed admin first
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const admin = await Admin.findOne({ username }).lean();
+      if (admin) {
+        const ok = await bcrypt.compare(password, admin.passwordHash);
+        if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+        const token = jwt.sign({ sub: username }, JWT_SECRET, { expiresIn: '8h' });
+        return res.json({ token });
+      }
+    }
+  } catch (e) {
+    console.error('Admin lookup error', e);
+  }
+  // Fallback to env-based admin
   if (username !== ADMIN_USER || password !== ADMIN_PASS) return res.status(401).json({ error: 'Invalid credentials' });
   const token = jwt.sign({ sub: username }, JWT_SECRET, { expiresIn: '8h' });
   return res.json({ token });
@@ -142,6 +160,71 @@ app.post('/api/admin/test-email', requireAuth, async (req, res) => {
   } catch (e) {
     console.error('Test email failed', e);
     return res.status(500).json({ error: 'Failed to send test email' });
+  }
+});
+
+// Public projects listing
+app.get('/api/projects', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const items = await Project.find().sort({ createdAt: -1 }).lean();
+      return res.json({ data: items });
+    }
+    const pj = JSON.parse(fs.readFileSync(path.join(__dirname,'projects.json'),'utf8')||'[]');
+    return res.json({ data: pj });
+  } catch (e) {
+    console.error('Projects list error', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin project management
+app.post('/api/admin/projects', requireAuth, async (req, res) => {
+  try {
+    const payload = req.body || {};
+    if (mongoose.connection.readyState === 1) {
+      const p = new Project(payload);
+      const saved = await p.save();
+      return res.json({ data: saved });
+    }
+    // fallback
+    const file = path.join(__dirname,'projects.json');
+    const arr = JSON.parse(fs.readFileSync(file,'utf8')||'[]');
+    arr.unshift({ id: Date.now(), ...payload, createdAt: new Date().toISOString() });
+    fs.writeFileSync(file, JSON.stringify(arr,null,2));
+    return res.json({ data: arr[0] });
+  } catch (e) {
+    console.error('Create project error', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/projects/:id', requireAuth, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const payload = req.body || {};
+    if (mongoose.connection.readyState === 1) {
+      const updated = await Project.findByIdAndUpdate(id, payload, { new: true });
+      return res.json({ data: updated });
+    }
+    return res.status(400).json({ error: 'Fallback update not implemented' });
+  } catch (e) {
+    console.error('Update project error', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/projects/:id', requireAuth, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (mongoose.connection.readyState === 1) {
+      await Project.findByIdAndDelete(id);
+      return res.json({ message: 'Deleted' });
+    }
+    return res.status(400).json({ error: 'Fallback delete not implemented' });
+  } catch (e) {
+    console.error('Delete project error', e);
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
