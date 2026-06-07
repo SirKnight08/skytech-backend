@@ -127,6 +127,24 @@ app.get('/api/admin/contacts', requireAuth, async (req, res) => {
   }
 });
 
+// Protected endpoint to send a test email
+app.post('/api/admin/test-email', requireAuth, async (req, res) => {
+  if (!transporter) return res.status(400).json({ error: 'SMTP not configured' });
+  const to = req.body?.to || process.env.NOTIFY_EMAIL || process.env.EMAIL_FROM;
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+      to,
+      subject: 'SkyTech test email',
+      text: 'This is a test email from SkyTech backend.',
+    });
+    return res.json({ message: 'Test email sent' });
+  } catch (e) {
+    console.error('Test email failed', e);
+    return res.status(500).json({ error: 'Failed to send test email' });
+  }
+});
+
 // fallback to index.html for client-side routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'skytech-portfolio', 'index.html'));
