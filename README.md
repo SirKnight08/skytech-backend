@@ -40,6 +40,7 @@ EMAIL_FROM=yourgmail@gmail.com
 ## Deploying
 
 - This backend is ready for Render or any Node.js hosting.
+- A `render.yaml` manifest is included for Render auto-deploys from GitHub.
 - No hardcoded localhost URLs are included.
 - The backend listens on `process.env.PORT || 3000`.
 

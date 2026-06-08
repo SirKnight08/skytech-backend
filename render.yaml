@@ -1,0 +1,13 @@
+services:
+  - type: web_service
+    name: skytech-backend
+    env: node
+    branch: main
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: EMAIL_USER
+      - key: EMAIL_PASS
+      - key: EMAIL_TO
+      - key: EMAIL_FROM
