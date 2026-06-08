@@ -7,6 +7,10 @@ const router = express.Router();
 const CONTACTS_FILE = path.join(__dirname, '..', 'data', 'contacts.json');
 const requiredFields = ['name', 'email', 'message'];
 
+async function ensureDataDirectory() {
+  await fs.mkdir(path.dirname(CONTACTS_FILE), { recursive: true });
+}
+
 async function readContacts() {
   try {
     const contents = await fs.readFile(CONTACTS_FILE, 'utf8');
@@ -17,6 +21,7 @@ async function readContacts() {
 }
 
 async function writeContacts(contacts) {
+  await ensureDataDirectory();
   await fs.writeFile(CONTACTS_FILE, JSON.stringify(contacts, null, 2), 'utf8');
 }
 
