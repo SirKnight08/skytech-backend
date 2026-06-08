@@ -16,6 +16,10 @@ async function readContacts() {
     const contents = await fs.readFile(CONTACTS_FILE, 'utf8');
     return JSON.parse(contents || '[]');
   } catch (error) {
+    if (error.code === 'ENOENT') {
+      return [];
+    }
+    console.warn('Unable to read contacts file, starting fresh:', error.message || error);
     return [];
   }
 }
@@ -27,9 +31,13 @@ async function writeContacts(contacts) {
 
 router.post('/', async (req, res) => {
   const { name, email, phone = '', company = '', service = '', message } = req.body || {};
+  const missingFields = requiredFields.filter((field) => !String(req.body?.[field] || '').trim());
 
-  if (!name || !email || !message) {
-    return res.status(400).json({ success: false, message: 'name, email, and message are required' });
+  if (missingFields.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: `Missing required fields: ${missingFields.join(', ')}`,
+    });
   }
 
   const contactEntry = {
