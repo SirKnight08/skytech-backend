@@ -30,7 +30,7 @@ SkyTech backend API for a portfolio contact form.
 Use `.env` to configure:
 
 ```env
-PORT=3000
+PORT=8000
 EMAIL_USER=yourgmail@gmail.com
 EMAIL_PASS=your_gmail_app_password
 EMAIL_TO=skytech08088@gmail.com
@@ -42,7 +42,7 @@ EMAIL_FROM=yourgmail@gmail.com
 - This backend is ready for Render or any Node.js hosting.
 - A `render.yaml` manifest is included for Render auto-deploys from GitHub.
 - No hardcoded localhost URLs are included.
-- The backend listens on `process.env.PORT || 3000`.
+ - The backend listens on `process.env.PORT || 8000`.
 
 ## Notes
 
