@@ -38,7 +38,8 @@ function buildEmailHtml(data) {
 
 function createTransporter() {
   if (!EMAIL_USER || !EMAIL_PASS || !EMAIL_TO) {
-    throw new Error('EMAIL_USER, EMAIL_PASS, and EMAIL_TO must be set in environment variables');
+    console.log('Nodemailer is not configured yet. Email delivery will be skipped.');
+    return null;
   }
 
   return nodemailer.createTransport({
@@ -52,6 +53,10 @@ function createTransporter() {
 
 async function sendContactEmail(data) {
   const transporter = createTransporter();
+
+  if (!transporter) {
+    return { skipped: true };
+  }
 
   const mailOptions = {
     from: EMAIL_FROM || EMAIL_USER,
